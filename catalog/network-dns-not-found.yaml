@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.0.0
+id: network-dns-not-found
+title: DNS name not found
+summary: Do not repeatedly query a name the resolver reports does not exist.
+domain: network
+classification: permanent
+signals:
+  errorCodes: [ENOTFOUND, NXDOMAIN]
+decision:
+  retry: "no"
+  retrySameRequest: false
+  rationale: Negative DNS responses are cacheable and waiting briefly does not correct a bad hostname.
+  prerequisites:
+    - Correct the hostname, service discovery record, or deployment configuration.
+safety:
+  idempotency: not_required
+  duplicateSideEffectRisk: none
+  retryAmplificationRisk: high
+  circuitBreaker: not_needed
+  guidance:
+    - Respect negative caching instead of generating repeated resolver traffic.
+telemetry: [dns_response_code, hostname_source, resolution_outcome]
+tags: [network, dns, permanent, configuration]
+aliases: [dns nxdomain, hostname not found]
+references:
+  - title: RFC 2308 - Negative Caching of DNS Queries
+    url: https://www.rfc-editor.org/rfc/rfc2308

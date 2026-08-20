@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.0.0
+id: network-read-timeout
+title: Network read timeout
+summary: Treat a response timeout as an ambiguous outcome until operation safety is known.
+domain: network
+classification: ambiguous_outcome
+signals:
+  errorCodes: [ETIMEDOUT, read_timeout]
+decision:
+  retry: conditional
+  retrySameRequest: false
+  rationale: The server may have completed the operation even though its response was not received.
+  prerequisites:
+    - Prove the operation is idempotent, use an idempotency key, or reconcile by operation ID.
+strategy:
+  mechanism: exponential_backoff
+  maxRetries: 1
+  requiresCallerDeadline: true
+  jitter: full
+  baseDelayMs: 100
+  maxDelayMs: 1000
+safety:
+  idempotency: required
+  duplicateSideEffectRisk: high
+  retryAmplificationRisk: medium
+  circuitBreaker: consider
+  reconciliation: Check whether the operation completed before issuing another mutation.
+  guidance:
+    - Record the timeout phase instead of grouping connect and response timeouts together.
+telemetry: [timeout_phase, operation_id, idempotency_key_present, retry_outcome]
+tags: [network, read, timeout, ambiguous-outcome, idempotency]
+aliases: [response timeout, socket read timeout]
+references:
+  - title: RFC 9110, Section 9.2.2 - Idempotent Methods
+    url: https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2

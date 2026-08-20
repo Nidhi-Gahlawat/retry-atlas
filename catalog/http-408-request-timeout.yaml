@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.0.0
+id: http-408-request-timeout
+title: HTTP 408 request timeout
+summary: Retry a timed-out request only when replaying the operation is safe.
+domain: http
+classification: ambiguous_outcome
+signals:
+  httpStatuses: [408]
+  errorCodes: [request_timeout]
+decision:
+  retry: conditional
+  retrySameRequest: false
+  rationale: A timeout does not always prove that the server performed no work.
+  prerequisites:
+    - Confirm the operation is idempotent, attach an idempotency key, or reconcile its outcome.
+strategy:
+  mechanism: exponential_backoff
+  maxRetries: 2
+  requiresCallerDeadline: true
+  jitter: full
+  baseDelayMs: 200
+  maxDelayMs: 2000
+safety:
+  idempotency: required
+  duplicateSideEffectRisk: high
+  retryAmplificationRisk: medium
+  circuitBreaker: consider
+  reconciliation: Query the operation by its stable identifier before replaying a non-idempotent request.
+  guidance:
+    - Open a new connection when the server has closed the timed-out connection.
+telemetry:
+  [request_method, operation_id, retry_attempt, logical_request_outcome]
+tags: [http, timeout, ambiguous-outcome, idempotency]
+aliases: [request timeout, http 408]
+references:
+  - title: RFC 9110, Section 15.5.9 - 408 Request Timeout
+    url: https://www.rfc-editor.org/rfc/rfc9110#section-15.5.9
+  - title: RFC 9110, Section 9.2.2 - Idempotent Methods
+    url: https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2

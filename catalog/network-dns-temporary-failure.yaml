@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.0.0
+id: network-dns-temporary-failure
+title: Temporary DNS resolution failure
+summary: Retry a temporary resolver failure with bounded backoff and jitter.
+domain: network
+classification: transient
+signals:
+  errorCodes: [EAI_AGAIN, SERVFAIL]
+decision:
+  retry: conditional
+  retrySameRequest: true
+  rationale: A resolver or authoritative server may recover from a temporary failure.
+  prerequisites:
+    - Confirm the resolver classified the failure as temporary rather than name-not-found.
+strategy:
+  mechanism: exponential_backoff
+  maxRetries: 2
+  requiresCallerDeadline: true
+  jitter: full
+  baseDelayMs: 100
+  maxDelayMs: 2000
+safety:
+  idempotency: operation_dependent
+  duplicateSideEffectRisk: low
+  retryAmplificationRisk: medium
+  circuitBreaker: consider
+  guidance:
+    - Preserve DNS caching behavior and avoid synchronized resolver traffic.
+telemetry: [dns_response_code, resolver, retry_attempt, resolution_outcome]
+tags: [network, dns, temporary, backoff]
+aliases: [temporary dns failure, dns servfail]
+references:
+  - title: RFC 2308 - Negative Caching of DNS Queries
+    url: https://www.rfc-editor.org/rfc/rfc2308

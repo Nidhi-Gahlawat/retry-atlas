@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.0.0
+id: network-connection-reset
+title: Network connection reset
+summary: Determine whether the operation may have reached the server before replaying it.
+domain: network
+classification: ambiguous_outcome
+signals:
+  errorCodes: [ECONNRESET, EPIPE]
+decision:
+  retry: conditional
+  retrySameRequest: false
+  rationale: A reset can happen before sending the request or after the server has performed work.
+  prerequisites:
+    - Establish the failure phase and make the operation replay-safe before retrying.
+strategy:
+  mechanism: exponential_backoff
+  maxRetries: 2
+  requiresCallerDeadline: true
+  jitter: full
+  baseDelayMs: 100
+  maxDelayMs: 2000
+safety:
+  idempotency: required
+  duplicateSideEffectRisk: unknown
+  retryAmplificationRisk: medium
+  circuitBreaker: consider
+  reconciliation: Use a stable operation ID to discover whether an interrupted mutation completed.
+  guidance:
+    - Reconnect before retrying; never reuse a reset connection.
+telemetry: [failure_phase, bytes_sent, operation_id, retry_outcome]
+tags: [network, connection-reset, ambiguous-outcome, idempotency]
+aliases: [connection reset, broken pipe]
+references:
+  - title: RFC 9110, Section 9.2.2 - Idempotent Methods
+    url: https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2

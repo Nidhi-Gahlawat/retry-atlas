@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.0.0
+id: auth-expired-access-token
+title: Expired access token
+summary: Refresh the credential before retrying the request.
+domain: authentication
+classification: persistent_until_state_change
+signals:
+  httpStatuses: [401]
+  errorCodes: [invalid_token]
+decision:
+  retry: conditional
+  retrySameRequest: false
+  rationale: Repeating an expired credential cannot succeed.
+  prerequisites:
+    - Invalidate the cached credential, refresh it once, and rebuild the authorization header.
+strategy:
+  mechanism: immediate_after_state_change
+  maxRetries: 1
+  requiresCallerDeadline: true
+safety:
+  idempotency: operation_dependent
+  duplicateSideEffectRisk: unknown
+  retryAmplificationRisk: high
+  circuitBreaker: consider
+  guidance:
+    - Coordinate concurrent refreshes so one refresh serves waiting requests.
+    - Do not treat insufficient scope or invalid credentials as token expiry.
+telemetry:
+  [token_age_at_failure, refresh_reason, refresh_outcome, retry_outcome]
+tags: [auth, oauth, token, http-401]
+aliases: [expired token, stale token]
+references:
+  - title: RFC 6750, Section 3.1 - The WWW-Authenticate Response Header Field
+    url: https://www.rfc-editor.org/rfc/rfc6750#section-3.1

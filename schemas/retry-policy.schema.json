@@ -1,0 +1,164 @@
+{
+  "$id": "https://retry-atlas.dev/schemas/retry-policy.schema.json",
+  "title": "Retry Atlas policy",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "title": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string", "minLength": 1 },
+    "domain": {
+      "type": "string",
+      "enum": ["authentication", "http", "network"]
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "transient",
+        "persistent_until_state_change",
+        "permanent",
+        "ambiguous_outcome"
+      ]
+    },
+    "signals": {
+      "type": "object",
+      "properties": {
+        "httpStatuses": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 100, "maximum": 599 }
+        },
+        "errorCodes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "decision": {
+      "type": "object",
+      "properties": {
+        "retry": { "type": "string", "enum": ["yes", "no", "conditional"] },
+        "retrySameRequest": { "type": "boolean" },
+        "rationale": { "type": "string", "minLength": 1 },
+        "prerequisites": {
+          "default": [],
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "required": ["retry", "retrySameRequest", "rationale", "prerequisites"],
+      "additionalProperties": false
+    },
+    "strategy": {
+      "type": "object",
+      "properties": {
+        "mechanism": {
+          "type": "string",
+          "enum": [
+            "immediate_after_state_change",
+            "server_directed",
+            "exponential_backoff"
+          ]
+        },
+        "maxRetries": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "requiresCallerDeadline": { "type": "boolean", "const": true },
+        "jitter": {
+          "type": "string",
+          "enum": ["none", "full", "equal", "decorrelated"]
+        },
+        "baseDelayMs": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxDelayMs": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["mechanism", "maxRetries", "requiresCallerDeadline"],
+      "additionalProperties": false
+    },
+    "safety": {
+      "type": "object",
+      "properties": {
+        "idempotency": {
+          "type": "string",
+          "enum": ["not_required", "required", "operation_dependent"]
+        },
+        "duplicateSideEffectRisk": {
+          "type": "string",
+          "enum": ["none", "low", "high", "unknown"]
+        },
+        "retryAmplificationRisk": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "circuitBreaker": {
+          "type": "string",
+          "enum": ["not_needed", "consider", "recommended"]
+        },
+        "reconciliation": { "type": "string", "minLength": 1 },
+        "guidance": {
+          "minItems": 1,
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "required": [
+        "idempotency",
+        "duplicateSideEffectRisk",
+        "retryAmplificationRisk",
+        "circuitBreaker",
+        "guidance"
+      ],
+      "additionalProperties": false
+    },
+    "telemetry": {
+      "minItems": 1,
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "tags": {
+      "minItems": 1,
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "aliases": {
+      "default": [],
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "references": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "format": "uri" }
+        },
+        "required": ["title", "url"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "summary",
+    "domain",
+    "classification",
+    "signals",
+    "decision",
+    "safety",
+    "telemetry",
+    "tags",
+    "aliases",
+    "references"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.0.0
+id: http-429-rate-limited
+title: HTTP 429 rate limited
+summary: Retry only within a bounded budget and after the server-directed delay when available.
+domain: http
+classification: transient
+signals:
+  httpStatuses: [429]
+  errorCodes: [too_many_requests]
+decision:
+  retry: conditional
+  retrySameRequest: true
+  rationale: Capacity may become available, but an immediate retry adds load during throttling.
+  prerequisites:
+    - Wait for Retry-After when supplied; otherwise apply a bounded client backoff policy.
+strategy:
+  mechanism: server_directed
+  maxRetries: 2
+  requiresCallerDeadline: true
+safety:
+  idempotency: operation_dependent
+  duplicateSideEffectRisk: unknown
+  retryAmplificationRisk: high
+  circuitBreaker: consider
+  guidance:
+    - Share rate-limit state across concurrent callers when practical.
+    - Stop when the caller deadline or retry budget is exhausted.
+telemetry: [retry_after, retry_delay_ms, retry_attempt, logical_request_outcome]
+tags: [http, rate-limit, overload, retry-after]
+aliases: [too many requests, rate limited]
+references:
+  - title: RFC 6585, Section 4 - 429 Too Many Requests
+    url: https://www.rfc-editor.org/rfc/rfc6585#section-4

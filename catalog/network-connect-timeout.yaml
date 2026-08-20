@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.0.0
+id: network-connect-timeout
+title: Network connection timeout
+summary: A bounded retry may succeed when a connection could not be established transiently.
+domain: network
+classification: transient
+signals:
+  errorCodes: [ETIMEDOUT, connect_timeout]
+decision:
+  retry: conditional
+  retrySameRequest: true
+  rationale: A short network or endpoint availability event may clear before another attempt.
+  prerequisites:
+    - Ensure the timeout occurred while establishing the connection, not while awaiting a response.
+strategy:
+  mechanism: exponential_backoff
+  maxRetries: 2
+  requiresCallerDeadline: true
+  jitter: full
+  baseDelayMs: 100
+  maxDelayMs: 2000
+safety:
+  idempotency: operation_dependent
+  duplicateSideEffectRisk: low
+  retryAmplificationRisk: medium
+  circuitBreaker: consider
+  guidance:
+    - Include connection setup in the end-to-end deadline.
+    - Do not stack application retries on top of unknown SDK retries.
+telemetry: [timeout_phase, endpoint, retry_attempt, retry_delay_ms]
+tags: [network, connect, timeout, backoff]
+aliases: [connect timeout, connection timed out]
+references:
+  - title: AWS Builders' Library - Timeouts, retries, and backoff with jitter
+    url: https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/

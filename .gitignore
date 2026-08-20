@@ -1,0 +1,7 @@
+node_modules/
+dist/
+site-dist/
+site/public/catalog.json
+coverage/
+*.tgz
+.DS_Store

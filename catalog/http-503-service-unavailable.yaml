@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.0.0
+id: http-503-service-unavailable
+title: HTTP 503 service unavailable
+summary: Back off within the caller deadline while the service is temporarily unavailable.
+domain: http
+classification: transient
+signals:
+  httpStatuses: [503]
+  errorCodes: [service_unavailable]
+decision:
+  retry: conditional
+  retrySameRequest: true
+  rationale: The service may recover, but immediate retries can deepen an overload event.
+  prerequisites:
+    - Respect Retry-After when supplied and reserve retry budget inside the caller deadline.
+strategy:
+  mechanism: exponential_backoff
+  maxRetries: 2
+  requiresCallerDeadline: true
+  jitter: full
+  baseDelayMs: 200
+  maxDelayMs: 5000
+safety:
+  idempotency: operation_dependent
+  duplicateSideEffectRisk: unknown
+  retryAmplificationRisk: high
+  circuitBreaker: recommended
+  guidance:
+    - Limit retries at one layer to avoid multiplicative attempts across a call chain.
+    - Fail fast while a circuit is open so the upstream can recover.
+telemetry:
+  [
+    retry_after,
+    retry_delay_ms,
+    retry_attempt,
+    circuit_state,
+    logical_request_outcome,
+  ]
+tags: [http, overload, unavailable, backoff, circuit-breaker]
+aliases: [service unavailable, http 503]
+references:
+  - title: RFC 9110, Section 15.6.4 - 503 Service Unavailable
+    url: https://www.rfc-editor.org/rfc/rfc9110#section-15.6.4
+  - title: AWS Builders' Library - Timeouts, retries, and backoff with jitter
+    url: https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/

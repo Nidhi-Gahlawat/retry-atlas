@@ -1,0 +1,6 @@
+coverage/
+dist/
+site-dist/
+site/public/catalog.json
+node_modules/
+pnpm-lock.yaml

@@ -169,7 +169,7 @@ main {
 
 .search-controls {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .search-field {
@@ -223,6 +223,19 @@ main {
 
 .clear-button[hidden] {
   display: none;
+}
+
+.search-thesis {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.search-thesis strong {
+  color: var(--ink);
 }
 
 .domain-filter {
@@ -527,13 +540,13 @@ kbd {
 }
 
 .decision-banner {
-  min-height: 92px;
+  min-height: 132px;
   margin-bottom: 34px;
-  padding: 18px 20px;
+  padding: 20px;
   border-left: 5px solid currentColor;
   display: grid;
   grid-template-columns: 42px 1fr auto;
-  align-items: center;
+  align-items: start;
   gap: 15px;
 }
 
@@ -570,12 +583,27 @@ kbd {
 }
 
 .decision-banner h2 {
+  max-width: 620px;
   margin: 0;
   color: var(--ink);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+.decision-copy {
+  min-width: 0;
+}
+
+.decision-why {
+  max-width: 680px;
+  margin: 10px 0 0;
+  color: #4b5652;
+  font-size: 0.78rem;
+  line-height: 1.55;
 }
 
 .same-request {
+  margin-top: 21px;
   color: var(--ink);
   font-family: var(--mono);
   font-size: 0.67rem;
@@ -588,25 +616,6 @@ kbd {
   font-size: clamp(2rem, 4vw, 3.7rem);
   line-height: 1.02;
   letter-spacing: 0;
-}
-
-.policy-summary,
-.policy-rationale {
-  max-width: 780px;
-  line-height: 1.7;
-}
-
-.policy-summary {
-  margin: 0 0 14px;
-  color: var(--ink);
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.policy-rationale {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.9rem;
 }
 
 .policy-body {
@@ -998,6 +1007,7 @@ footer {
 
   .same-request {
     grid-column: 2;
+    margin-top: 0;
     white-space: normal;
   }
 

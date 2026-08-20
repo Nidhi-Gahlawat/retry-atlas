@@ -106,6 +106,9 @@ function renderShell(): void {
               <i data-lucide="x"></i>
             </button>
           </div>
+          <p class="search-thesis">
+            <strong>Don’t retry blindly.</strong> Find out what failed first.
+          </p>
           <div class="domain-filter" role="group" aria-label="Filter by domain">
             ${domainButton("all", "All")}
             ${domainButton("authentication", "Auth")}
@@ -295,15 +298,14 @@ function renderDetail(): void {
       </div>
       <div class="decision-banner decision-banner-${policy.decision.retry}">
         <span class="decision-icon">${decisionIcon(policy.decision.retry)}</span>
-        <div>
-          <p class="eyebrow">Decision</p>
-          <h2>${decisionHeadline(policy.decision.retry)}</h2>
+        <div class="decision-copy">
+          <p class="eyebrow">${decisionVerdict(policy.decision.retry)}</p>
+          <h2>${escapeHtml(policy.summary)}</h2>
+          <p class="decision-why"><strong>Why:</strong> ${escapeHtml(policy.decision.rationale)}</p>
         </div>
         <span class="same-request">Retry same request: <strong>${policy.decision.retrySameRequest ? "yes" : "no"}</strong></span>
       </div>
       <h2 class="policy-title">${escapeHtml(policy.title)}</h2>
-      <p class="policy-summary">${escapeHtml(policy.summary)}</p>
-      <p class="policy-rationale">${escapeHtml(policy.decision.rationale)}</p>
     </header>
 
     <div class="policy-body">
@@ -437,14 +439,14 @@ function decisionIcon(decision: Policy["decision"]["retry"]): string {
   return '<i data-lucide="circle-alert"></i>';
 }
 
-function decisionHeadline(decision: Policy["decision"]["retry"]): string {
-  if (decision === "no") return "Do not retry";
-  if (decision === "yes") return "Retry is supported";
-  return "Retry with conditions";
-}
-
 function formatDecision(decision: Policy["decision"]["retry"]): string {
   return decision === "conditional" ? "Conditional" : formatLabel(decision);
+}
+
+function decisionVerdict(decision: Policy["decision"]["retry"]): string {
+  if (decision === "no") return "Do not retry";
+  if (decision === "yes") return "Retry supported";
+  return "Conditional";
 }
 
 function formatLabel(value: string): string {

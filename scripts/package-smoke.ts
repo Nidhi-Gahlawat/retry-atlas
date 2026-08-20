@@ -32,8 +32,8 @@ await writeFile(
   "utf8",
 );
 await execFileAsync(
-  "npm",
-  ["install", "--ignore-scripts", resolve(temporaryDirectory, archive)],
+  process.execPath,
+  [pnpmCli, "add", "--ignore-scripts", resolve(temporaryDirectory, archive)],
   { cwd: consumerDirectory },
 );
 

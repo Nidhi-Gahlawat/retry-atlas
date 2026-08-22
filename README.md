@@ -46,6 +46,12 @@ The Pages workflow deploys that output after a push to `main`. In the GitHub
 repository settings, set **Pages > Build and deployment > Source** to
 **GitHub Actions** before the first deployment.
 
+## New to retries?
+
+Start with [Retry fundamentals](docs/retry-fundamentals.md) for the decision process, mutation safety, deadlines, backoff, and retry amplification. Use the [Retry glossary](docs/glossary.md) when a policy mentions concepts such as ambiguous outcome, idempotency, reconciliation, jitter, or circuit breaking.
+
+When the retry decision is clear, [Implementing retries with libraries](docs/retry-libraries.md) compares built-in retry mechanisms and representative libraries for JavaScript, Python, Java, .NET, Go, Rust, gRPC, and AWS SDKs. Its examples show bounded wiring rather than drop-in production configuration.
+
 ## The review questions
 
 Every catalog entry must answer three questions:

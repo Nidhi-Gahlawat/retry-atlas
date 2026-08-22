@@ -21,6 +21,11 @@ import {
   type SearchOptions,
 } from "../../src/catalog/search.js";
 import type { Policy } from "../../src/schema/policy.js";
+import {
+  learningConcepts,
+  searchLearningConcepts,
+  type LearningConcept,
+} from "./learning.js";
 
 import "./styles.css";
 
@@ -78,9 +83,15 @@ function renderShell(): void {
         <span class="brand-mark"><i data-lucide="activity"></i></span>
         <span>Retry Atlas</span>
       </a>
-      <div class="catalog-status" aria-label="Catalog status">
-        <span class="status-light"></span>
-        <span><strong>${policies.length}</strong> cited policies</span>
+      <div class="topbar-actions">
+        <button class="learning-trigger" type="button" aria-label="Retry basics" title="Retry basics">
+          <i data-lucide="book-open"></i>
+          <span>Retry basics</span>
+        </button>
+        <div class="catalog-status" aria-label="${policies.length} cited policies">
+          <span class="status-light"></span>
+          <span><strong>${policies.length}</strong><span class="status-label"> cited policies</span></span>
+        </div>
       </div>
     </header>
 
@@ -127,11 +138,29 @@ function renderShell(): void {
             </div>
             <span class="keyboard-hint"><kbd>/</kbd> focus</span>
           </div>
+          <div id="concept-results" class="concept-results"></div>
           <div id="results" class="results-list"></div>
         </aside>
-        <article id="policy-detail" class="detail-pane" aria-live="polite"></article>
+        <article id="policy-detail" class="detail-pane"></article>
       </section>
     </main>
+
+    <dialog id="learning-dialog" class="learning-dialog" aria-labelledby="learning-title">
+      <div class="learning-dialog-frame">
+        <header class="learning-dialog-header">
+          <div>
+            <p class="eyebrow">Retry guidance</p>
+            <h2 id="learning-title">Before you retry</h2>
+          </div>
+          <button class="learning-close" type="button" aria-label="Close retry basics" title="Close">
+            <i data-lucide="x"></i>
+          </button>
+        </header>
+        <div id="learning-content" class="learning-content"></div>
+      </div>
+    </dialog>
+
+    <p id="app-status" class="sr-only" aria-live="polite"></p>
 
     <footer>
       <span>Retry guidance, not retry automation.</span>
@@ -178,6 +207,9 @@ function renderShell(): void {
     }
   });
 
+  window.addEventListener("popstate", restoreFromUrl);
+  bindLearningDialog();
+
   renderIcons();
 }
 
@@ -190,9 +222,56 @@ function applySearch(updateHistory = true): void {
     selectedPolicyId = matches[0]?.id;
   }
 
+  renderConceptResults();
   renderResults();
   renderDetail();
   if (updateHistory) updateUrl();
+}
+
+function renderConceptResults(): void {
+  const container = document.querySelector<HTMLElement>("#concept-results");
+  if (!container) return;
+
+  const concepts = searchLearningConcepts(query);
+  if (concepts.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <section class="concept-match" aria-labelledby="concept-match-heading">
+      <div class="concept-match-heading">
+        <div>
+          <p class="eyebrow">Concept guide</p>
+          <h3 id="concept-match-heading">Learn the decision terms</h3>
+        </div>
+        <i data-lucide="book-open"></i>
+      </div>
+      ${concepts
+        .map(
+          (concept) => `
+            <button type="button" data-learning-concept="${concept.id}">
+              <strong>${escapeHtml(concept.title)}</strong>
+              <span>${escapeHtml(concept.summary)}</span>
+              <i data-lucide="chevron-right"></i>
+            </button>
+          `,
+        )
+        .join("")}
+    </section>
+  `;
+
+  container
+    .querySelectorAll<HTMLButtonElement>("[data-learning-concept]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const concept = learningConcepts.find(
+          (candidate) => candidate.id === button.dataset.learningConcept,
+        );
+        if (concept) openLearningDialog(concept);
+      });
+    });
+  renderIcons();
 }
 
 function renderResults(): void {
@@ -251,15 +330,12 @@ function renderResults(): void {
     .querySelectorAll<HTMLButtonElement>("[data-policy-id]")
     .forEach((button) => {
       button.addEventListener("click", () => {
+        const previousPolicyId = selectedPolicyId;
         selectedPolicyId = button.dataset.policyId;
         renderResults();
         renderDetail();
-        updateUrl();
-        if (window.matchMedia("(max-width: 820px)").matches) {
-          document
-            .querySelector("#policy-detail")
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
+        updateUrl(previousPolicyId === selectedPolicyId ? "replace" : "push");
+        revealSelectedPolicy();
       });
     });
   renderIcons();
@@ -271,6 +347,7 @@ function renderDetail(): void {
 
   const policy = matches.find((candidate) => candidate.id === selectedPolicyId);
   if (!policy) {
+    document.title = "Retry Atlas";
     detail.innerHTML = `
       <div class="detail-empty">
         <div class="empty-signal" aria-hidden="true">
@@ -282,6 +359,8 @@ function renderDetail(): void {
     `;
     return;
   }
+
+  document.title = `${policy.title} · Retry Atlas`;
 
   detail.innerHTML = `
     <header class="policy-header">
@@ -305,7 +384,7 @@ function renderDetail(): void {
         </div>
         <span class="same-request">Retry same request: <strong>${policy.decision.retrySameRequest ? "yes" : "no"}</strong></span>
       </div>
-      <h2 class="policy-title">${escapeHtml(policy.title)}</h2>
+      <h2 class="policy-title" tabindex="-1">${escapeHtml(policy.title)}</h2>
     </header>
 
     <div class="policy-body">
@@ -545,8 +624,10 @@ function bindCopyLink(detail: HTMLElement): void {
       await copyText(window.location.href);
       button.innerHTML = '<i data-lucide="check"></i><span>Link copied</span>';
       renderIcons();
+      announce("Policy link copied.");
     } catch {
       button.textContent = "Copy failed";
+      announce("Policy link could not be copied.");
     }
   });
 }
@@ -569,12 +650,146 @@ async function copyText(value: string): Promise<void> {
   }
 }
 
-function updateUrl(): void {
+function updateUrl(mode: "push" | "replace" = "replace"): void {
   const url = new URL(window.location.href);
   setSearchParameter(url, "q", query || undefined);
   setSearchParameter(url, "domain", domain === "all" ? undefined : domain);
   setSearchParameter(url, "policy", selectedPolicyId);
-  window.history.replaceState(null, "", url);
+  window.history[`${mode}State`](null, "", url);
+}
+
+function restoreFromUrl(): void {
+  const parameters = new URLSearchParams(window.location.search);
+  query = parameters.get("q") ?? "";
+  domain = parseDomain(parameters.get("domain"));
+  selectedPolicyId = parameters.get("policy") ?? undefined;
+
+  const input = document.querySelector<HTMLInputElement>("#error-query");
+  if (input) input.value = query;
+  updateClearButton();
+  updateDomainButtons();
+  applySearch(false);
+}
+
+function revealSelectedPolicy(): void {
+  const detail = document.querySelector<HTMLElement>("#policy-detail");
+  const heading = detail?.querySelector<HTMLElement>(".policy-title");
+  const policy = matches.find((candidate) => candidate.id === selectedPolicyId);
+  if (!detail || !heading || !policy) return;
+
+  detail.scrollIntoView({ behavior: "auto", block: "start" });
+  heading.focus({ preventScroll: true });
+  announce(`${policy.title}. ${decisionVerdict(policy.decision.retry)}.`);
+}
+
+function bindLearningDialog(): void {
+  const dialog = document.querySelector<HTMLDialogElement>("#learning-dialog");
+  if (!dialog) return;
+
+  document.querySelector(".learning-trigger")?.addEventListener("click", () => {
+    openLearningDialog();
+  });
+  dialog.querySelector(".learning-close")?.addEventListener("click", () => {
+    dialog.close();
+  });
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+}
+
+function openLearningDialog(concept?: LearningConcept): void {
+  const dialog = document.querySelector<HTMLDialogElement>("#learning-dialog");
+  const content = document.querySelector<HTMLElement>("#learning-content");
+  const title = document.querySelector<HTMLElement>("#learning-title");
+  if (!dialog || !content || !title) return;
+
+  title.textContent = concept?.title ?? "Before you retry";
+  content.innerHTML = concept
+    ? formatLearningConcept(concept)
+    : formatLearningOverview();
+  bindLearningConceptButtons(content);
+  renderIcons();
+  if (!dialog.open) dialog.showModal();
+}
+
+function formatLearningOverview(): string {
+  return `
+    <p class="learning-lead">A retry is defensible only when another attempt can succeed without unacceptable duplicate effects or recovery load.</p>
+    <ol class="decision-questions">
+      <li><span>1</span><div><strong>Why did the first attempt fail?</strong><p>Locate the failure and decide how far the operation might have progressed.</p></div></li>
+      <li><span>2</span><div><strong>What will change?</strong><p>Name the state change, server timing, or transient condition that makes another attempt useful.</p></div></li>
+      <li><span>3</span><div><strong>Could it already have succeeded?</strong><p>Reconcile ambiguous mutations before replaying them.</p></div></li>
+      <li><span>4</span><div><strong>Is the replay protected?</strong><p>Prove idempotency or use a stable operation ID and duplicate suppression.</p></div></li>
+      <li><span>5</span><div><strong>Does it fit the budget?</strong><p>Keep attempts, delay, and downstream work inside one caller deadline.</p></div></li>
+    </ol>
+    <section class="learning-index" aria-labelledby="learning-index-title">
+      <p class="eyebrow">Explore the vocabulary</p>
+      <h3 id="learning-index-title">Retry concepts</h3>
+      <div>
+        ${learningConcepts
+          .map(
+            (item) =>
+              `<button type="button" data-learning-concept="${item.id}">${escapeHtml(item.title)}<i data-lucide="chevron-right"></i></button>`,
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function formatLearningConcept(concept: LearningConcept): string {
+  return `
+    <p class="learning-lead">${escapeHtml(concept.summary)}</p>
+    <p class="learning-explanation">${escapeHtml(concept.explanation)}</p>
+    <section class="learning-checks" aria-labelledby="learning-checks-title">
+      <p class="eyebrow">Apply it</p>
+      <h3 id="learning-checks-title">Questions to answer</h3>
+      ${formatList(concept.checks)}
+    </section>
+    <section class="learning-references" aria-labelledby="learning-references-title">
+      <p class="eyebrow">Primary material</p>
+      <h3 id="learning-references-title">References</h3>
+      ${concept.references
+        .map(
+          (reference) => `
+            <a href="${escapeHtml(reference.url)}" target="_blank" rel="noreferrer">
+              <span>${escapeHtml(reference.title)}</span>
+              <i data-lucide="arrow-up-right"></i>
+            </a>
+          `,
+        )
+        .join("")}
+    </section>
+    <button class="learning-back" type="button" data-learning-overview>
+      <i data-lucide="rotate-ccw"></i>
+      <span>All retry concepts</span>
+    </button>
+  `;
+}
+
+function bindLearningConceptButtons(container: HTMLElement): void {
+  container
+    .querySelectorAll<HTMLButtonElement>("[data-learning-concept]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const concept = learningConcepts.find(
+          (candidate) => candidate.id === button.dataset.learningConcept,
+        );
+        if (concept) openLearningDialog(concept);
+      });
+    });
+  container
+    .querySelector("[data-learning-overview]")
+    ?.addEventListener("click", () => openLearningDialog());
+}
+
+function announce(message: string): void {
+  const status = document.querySelector<HTMLElement>("#app-status");
+  if (!status) return;
+  status.textContent = "";
+  window.setTimeout(() => {
+    status.textContent = message;
+  }, 0);
 }
 
 function setSearchParameter(

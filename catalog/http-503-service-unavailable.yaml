@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../schemas/retry-policy.schema.json
-schemaVersion: 1.0.0
+schemaVersion: 1.1.0
 id: http-503-service-unavailable
 title: HTTP 503 service unavailable
 summary: Back off within the caller deadline while the service is temporarily unavailable.
@@ -8,6 +8,24 @@ classification: transient
 signals:
   httpStatuses: [503]
   errorCodes: [service_unavailable]
+diagnosis:
+  meaning: The service is temporarily unable or unwilling to handle the request.
+  commonCauses:
+    - The service is overloaded or has exhausted a constrained dependency.
+    - The service is starting, draining, or undergoing maintenance.
+    - A protective load-shedding mechanism is rejecting work.
+  checks:
+    - Inspect Retry-After and service health or maintenance signals.
+    - Correlate failures with saturation, queue depth, and dependency health.
+    - Check whether retries are increasing attempts per logical request.
+resolution:
+  owner: shared
+  immediate:
+    - Respect Retry-After or use bounded jittered backoff within the caller deadline.
+    - Open a circuit and fail fast when failures cross the service threshold.
+  longTerm:
+    - Remove the capacity bottleneck or dependency failure causing unavailability.
+    - Define retry budgets and load shedding together so recovery traffic stays bounded.
 decision:
   retry: conditional
   retrySameRequest: true

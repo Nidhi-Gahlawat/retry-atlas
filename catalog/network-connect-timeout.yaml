@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../schemas/retry-policy.schema.json
-schemaVersion: 1.0.0
+schemaVersion: 1.1.0
 id: network-connect-timeout
 title: Network connection timeout
 summary: A bounded retry may succeed when a connection could not be established transiently.
@@ -7,6 +7,24 @@ domain: network
 classification: transient
 signals:
   errorCodes: [ETIMEDOUT, connect_timeout]
+diagnosis:
+  meaning: A network connection was not established before the connection timeout expired.
+  commonCauses:
+    - The destination is unreachable or silently dropping connection attempts.
+    - A firewall, proxy, or load balancer is delaying or discarding traffic.
+    - The endpoint is overloaded and cannot accept connections promptly.
+  checks:
+    - Confirm the timeout phase is connection establishment rather than response reading.
+    - Check the resolved address, destination port, route, and proxy configuration.
+    - Compare failures across endpoints or availability zones.
+resolution:
+  owner: shared
+  immediate:
+    - Try another healthy endpoint with bounded jittered backoff when available.
+    - Stop when the caller deadline or retry budget is exhausted.
+  longTerm:
+    - Correct routing or firewall policy and restore endpoint capacity.
+    - Monitor connection latency separately from request latency.
 decision:
   retry: conditional
   retrySameRequest: true

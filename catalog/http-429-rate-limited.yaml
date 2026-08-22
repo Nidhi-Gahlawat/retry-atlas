@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../schemas/retry-policy.schema.json
-schemaVersion: 1.0.0
+schemaVersion: 1.1.0
 id: http-429-rate-limited
 title: HTTP 429 rate limited
 summary: Retry only within a bounded budget and after the server-directed delay when available.
@@ -8,6 +8,24 @@ classification: transient
 signals:
   httpStatuses: [429]
   errorCodes: [too_many_requests]
+diagnosis:
+  meaning: The server is refusing requests because the caller exceeded an enforced rate or capacity limit.
+  commonCauses:
+    - The caller exceeded a per-user, per-token, or per-IP quota.
+    - Concurrent workers created a short request burst.
+    - Application retries are consuming the same quota as original requests.
+  checks:
+    - Inspect Retry-After and provider-specific rate-limit headers.
+    - Compare request volume and concurrency with the documented quota window.
+    - Count attempts per logical request to detect retry amplification.
+resolution:
+  owner: caller
+  immediate:
+    - Pause according to Retry-After when present and stop at the caller deadline.
+    - Reduce concurrency or queue work instead of immediately replaying every request.
+  longTerm:
+    - Apply shared client-side rate limiting across concurrent workers.
+    - Request a quota change only after eliminating avoidable bursts and duplicate attempts.
 decision:
   retry: conditional
   retrySameRequest: true

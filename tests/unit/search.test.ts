@@ -16,6 +16,13 @@ describe("searchPolicies", () => {
     expect(matches[0]?.id).toBe("auth-expired-access-token");
   });
 
+  it("finds a policy by diagnostic content", () => {
+    const matches = searchPolicies(catalog.policies, {
+      query: "clock skew",
+    });
+    expect(matches[0]?.id).toBe("auth-expired-access-token");
+  });
+
   it("combines structured filters", () => {
     const matches = searchPolicies(catalog.policies, {
       status: 401,

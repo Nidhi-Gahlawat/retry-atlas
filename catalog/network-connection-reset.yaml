@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../schemas/retry-policy.schema.json
-schemaVersion: 1.0.0
+schemaVersion: 1.1.0
 id: network-connection-reset
 title: Network connection reset
 summary: Determine whether the operation may have reached the server before replaying it.
@@ -7,6 +7,24 @@ domain: network
 classification: ambiguous_outcome
 signals:
   errorCodes: [ECONNRESET, EPIPE]
+diagnosis:
+  meaning: One side closed an established connection unexpectedly while data was being exchanged.
+  commonCauses:
+    - The peer process restarted, crashed, or intentionally closed an idle connection.
+    - A proxy or load balancer removed the connection.
+    - The client wrote to a connection that the peer had already closed.
+  checks:
+    - Record whether the reset happened before, during, or after request transmission.
+    - Compare bytes sent with server-side request or operation IDs.
+    - Check peer restarts, connection-age limits, and intermediary timeout logs.
+resolution:
+  owner: shared
+  immediate:
+    - Discard the closed connection and establish a new one.
+    - Reconcile ambiguous mutations before replaying them.
+  longTerm:
+    - Align keep-alive and idle timeout settings across clients and intermediaries.
+    - Use operation IDs and idempotency controls where resets can hide completed work.
 decision:
   retry: conditional
   retrySameRequest: false

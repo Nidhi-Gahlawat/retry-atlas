@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../schemas/retry-policy.schema.json
-schemaVersion: 1.0.0
+schemaVersion: 1.1.0
 id: network-dns-not-found
 title: DNS name not found
 summary: Do not repeatedly query a name the resolver reports does not exist.
@@ -7,6 +7,24 @@ domain: network
 classification: permanent
 signals:
   errorCodes: [ENOTFOUND, NXDOMAIN]
+diagnosis:
+  meaning: DNS reports that the requested name does not exist.
+  commonCauses:
+    - The hostname contains a typo or uses the wrong environment suffix.
+    - The expected service-discovery or DNS record was never created.
+    - A deployment removed the record before clients stopped using it.
+  checks:
+    - Log the hostname source and compare it with deployed configuration.
+    - Query the authoritative DNS path and inspect the negative response and TTL.
+    - Confirm that search-domain expansion did not produce an unintended name.
+resolution:
+  owner: operations
+  immediate:
+    - Stop retrying and correct the hostname or service-discovery configuration.
+    - Respect negative caching while the record is absent.
+  longTerm:
+    - Validate required DNS records during deployment.
+    - Coordinate record removal with client and cache lifetimes.
 decision:
   retry: "no"
   retrySameRequest: false

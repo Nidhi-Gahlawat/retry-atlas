@@ -11,7 +11,7 @@ describe("loadCatalog", () => {
     const result = await loadCatalog(join(process.cwd(), "catalog"));
 
     expect(result.diagnostics).toEqual([]);
-    expect(result.policies).toHaveLength(10);
+    expect(result.policies).toHaveLength(16);
     expect(result.policies.map((policy) => policy.id)).toContain(
       "network-read-timeout",
     );

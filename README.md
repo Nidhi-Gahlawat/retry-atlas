@@ -69,7 +69,7 @@ Use `retry-atlas <command> --help` for complete options. Exit code `0` means suc
 
 ## Catalog
 
-The initial catalog covers authentication failures, HTTP overload and timeout responses, connection failures, and DNS resolution. Policies live in [`catalog`](catalog), follow the generated [`retry-policy.schema.json`](schemas/retry-policy.schema.json), and cite standards or authoritative operational guidance.
+The 16-policy catalog covers authentication failures, HTTP client and server errors, overload and timeout responses, connection failures, and DNS resolution. HTTP coverage includes bad requests, conflicts, validation failures, internal errors, bad gateways, and gateway timeouts. Policies live in [`catalog`](catalog), follow the generated [`retry-policy.schema.json`](schemas/retry-policy.schema.json), and cite standards or authoritative operational guidance.
 
 See [`docs/policy-authoring.md`](docs/policy-authoring.md) before proposing a policy.
 

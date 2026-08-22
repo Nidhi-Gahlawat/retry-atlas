@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../schemas/retry-policy.schema.json
-schemaVersion: 1.0.0
+schemaVersion: 1.1.0
 id: auth-expired-access-token
 title: Expired access token
 summary: Refresh the credential before retrying the request.
@@ -8,6 +8,24 @@ classification: persistent_until_state_change
 signals:
   httpStatuses: [401]
   errorCodes: [invalid_token]
+diagnosis:
+  meaning: The API rejected an access token that is no longer valid.
+  commonCauses:
+    - The token reached its expiry time.
+    - A cached token remained in use after another caller refreshed it.
+    - The authorization server revoked or invalidated the token.
+  checks:
+    - Inspect the authentication challenge for the invalid_token error.
+    - Compare the token expiry claim with the request time, allowing for clock skew.
+    - Check whether concurrent callers are sharing stale cached credentials.
+resolution:
+  owner: caller
+  immediate:
+    - Invalidate the cached credential and perform one coordinated token refresh.
+    - Rebuild the authorization header with the refreshed token before retrying.
+  longTerm:
+    - Refresh shortly before expiry with a small clock-skew allowance.
+    - Use single-flight refresh so concurrent requests do not create a refresh storm.
 decision:
   retry: conditional
   retrySameRequest: false

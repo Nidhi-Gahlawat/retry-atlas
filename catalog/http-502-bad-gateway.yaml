@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.1.0
+id: http-502-bad-gateway
+title: HTTP 502 bad gateway
+summary: Retry safe operations briefly while diagnosing the invalid upstream response.
+domain: http
+classification: transient
+signals:
+  httpStatuses: [502]
+  errorCodes: [bad_gateway]
+diagnosis:
+  meaning: A gateway or proxy received an invalid response from an upstream server while fulfilling the request.
+  commonCauses:
+    - The upstream closed a connection or emitted malformed HTTP while responding.
+    - Gateway and upstream protocol, TLS, or response-size settings are incompatible.
+    - A deployment left the gateway routing to unhealthy or mismatched upstream instances.
+  checks:
+    - Correlate gateway and upstream request IDs, connection errors, and deployment changes.
+    - Inspect upstream health and protocol errors rather than treating 502 as an origin application response.
+    - For mutations, determine whether the upstream applied the request before its response became invalid.
+resolution:
+  owner: service_owner
+  immediate:
+    - Retry only safe or idempotency-protected operations with short jittered backoff.
+    - Remove unhealthy upstream instances and stop retries when failures persist across the budget.
+  longTerm:
+    - Align gateway and upstream protocol limits, TLS settings, and health checks.
+    - Preserve end-to-end request correlation and idempotency for proxied mutations.
+decision:
+  retry: conditional
+  retrySameRequest: true
+  rationale: Another upstream attempt may succeed, but a mutation might already have been applied.
+  prerequisites:
+    - Retry only an idempotent operation or one protected against duplicate effects.
+strategy:
+  mechanism: exponential_backoff
+  maxRetries: 2
+  requiresCallerDeadline: true
+  jitter: full
+  baseDelayMs: 200
+  maxDelayMs: 2000
+safety:
+  idempotency: required
+  duplicateSideEffectRisk: unknown
+  retryAmplificationRisk: high
+  circuitBreaker: consider
+  guidance:
+    - Keep the retry budget at one layer in the gateway call chain.
+    - Verify mutation outcome when the upstream may have processed the request.
+telemetry:
+  [request_id, upstream, gateway_error, retry_attempt, operation_outcome]
+tags: [http, gateway, proxy, upstream, bad-response]
+aliases: [bad gateway, invalid upstream response, http 502]
+references:
+  - title: RFC 9110, Section 15.6.3 - 502 Bad Gateway
+    url: https://www.rfc-editor.org/rfc/rfc9110#section-15.6.3

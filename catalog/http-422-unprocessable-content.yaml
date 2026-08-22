@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.1.0
+id: http-422-unprocessable-content
+title: HTTP 422 unprocessable content
+summary: Correct semantically invalid content before submitting a new request.
+domain: http
+classification: permanent
+signals:
+  httpStatuses: [422]
+  errorCodes: [unprocessable_content, validation_failed]
+diagnosis:
+  meaning: The server understands the content type and syntax but cannot process the contained instructions.
+  commonCauses:
+    - A field violates a domain validation rule or cross-field constraint.
+    - A referenced entity or requested transition is not valid for the operation.
+    - The caller and server disagree about the current request contract or accepted values.
+  checks:
+    - Inspect structured validation errors for field paths, rule codes, and rejected values.
+    - Compare the payload with the current schema and endpoint-specific business rules.
+    - Confirm referenced resources and allowed state transitions without logging sensitive content.
+resolution:
+  owner: caller
+  immediate:
+    - Stop automatic retries and return actionable validation details to the caller.
+    - Correct the semantic error before constructing a new request.
+  longTerm:
+    - Share machine-readable validation constraints and stable error codes across the boundary.
+    - Add contract tests for domain rules that are not expressible in the payload schema.
+decision:
+  retry: "no"
+  retrySameRequest: false
+  rationale: The server already parsed the content; delay alone cannot make its instructions valid.
+  prerequisites:
+    - Correct the content or referenced state before making a new attempt.
+safety:
+  idempotency: not_required
+  duplicateSideEffectRisk: none
+  retryAmplificationRisk: high
+  circuitBreaker: not_needed
+  guidance:
+    - Preserve structured validation details instead of replacing them with a generic retry.
+    - Redact rejected values that may contain personal data or secrets.
+telemetry: [request_id, validation_rule, contract_version, request_outcome]
+tags: [http, validation, semantic-error, client-error]
+aliases: [unprocessable content, validation failed, semantic error, http 422]
+references:
+  - title: RFC 9110, Section 15.5.21 - 422 Unprocessable Content
+    url: https://www.rfc-editor.org/rfc/rfc9110#section-15.5.21

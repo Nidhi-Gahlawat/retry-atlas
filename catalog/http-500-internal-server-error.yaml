@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.1.0
+id: http-500-internal-server-error
+title: HTTP 500 internal server error
+summary: Treat the outcome as ambiguous and retry only safe operations within a strict budget.
+domain: http
+classification: ambiguous_outcome
+signals:
+  httpStatuses: [500]
+  errorCodes: [internal_server_error]
+diagnosis:
+  meaning: The origin server encountered an unexpected condition that prevented it from fulfilling the request.
+  commonCauses:
+    - An unhandled application error interrupted request processing.
+    - A dependency or data invariant failed without a more specific status mapping.
+    - The operation committed a mutation before response generation failed.
+  checks:
+    - Correlate the request ID with server exceptions, traces, and dependency outcomes.
+    - Determine whether failures are isolated, release-correlated, or persistent for the same input.
+    - For mutations, query the authoritative outcome before considering a replay.
+resolution:
+  owner: service_owner
+  immediate:
+    - Retry only idempotent reads or mutations protected by an idempotency mechanism.
+    - Stop after a small jittered budget and surface the request ID for investigation.
+  longTerm:
+    - Fix the underlying exception and map known failure modes to specific actionable responses.
+    - Make mutation outcomes queryable and enforce idempotency at the service boundary.
+decision:
+  retry: conditional
+  retrySameRequest: true
+  rationale: Some unexpected conditions are transient, but status 500 does not prove that replay is safe or useful.
+  prerequisites:
+    - Retry only an idempotent operation or one protected against duplicate effects.
+strategy:
+  mechanism: exponential_backoff
+  maxRetries: 1
+  requiresCallerDeadline: true
+  jitter: full
+  baseDelayMs: 200
+  maxDelayMs: 1000
+safety:
+  idempotency: required
+  duplicateSideEffectRisk: unknown
+  retryAmplificationRisk: high
+  circuitBreaker: consider
+  guidance:
+    - Verify a mutation's outcome before replay when the first attempt may have committed.
+    - Do not retry deterministic 500 responses for the same input indefinitely.
+telemetry: [request_id, exception_class, retry_attempt, operation_outcome]
+tags: [http, server-error, ambiguous-outcome, idempotency]
+aliases: [internal server error, server exception, http 500]
+references:
+  - title: RFC 9110, Section 15.6.1 - 500 Internal Server Error
+    url: https://www.rfc-editor.org/rfc/rfc9110#section-15.6.1

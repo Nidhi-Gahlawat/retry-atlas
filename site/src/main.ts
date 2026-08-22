@@ -309,6 +309,47 @@ function renderDetail(): void {
     </header>
 
     <div class="policy-body">
+      <section class="detail-section diagnosis-section">
+        <div class="section-heading">
+          <i data-lucide="circle-alert"></i>
+          <div>
+            <p class="eyebrow">Understand the signal</p>
+            <h3>Meaning and diagnosis</h3>
+          </div>
+        </div>
+        <p class="diagnosis-meaning">${escapeHtml(policy.diagnosis.meaning)}</p>
+        <div class="diagnostic-grid">
+          <div>
+            <h4>Common causes</h4>
+            ${formatList(policy.diagnosis.commonCauses)}
+          </div>
+          <div>
+            <h4>Checks</h4>
+            ${formatList(policy.diagnosis.checks)}
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-section resolution-section">
+        <div class="section-heading">
+          <i data-lucide="check"></i>
+          <div>
+            <p class="eyebrow">Owner: ${formatLabel(policy.resolution.owner)}</p>
+            <h3>Resolution</h3>
+          </div>
+        </div>
+        <div class="diagnostic-grid">
+          <div>
+            <h4>Immediate</h4>
+            ${formatList(policy.resolution.immediate)}
+          </div>
+          <div>
+            <h4>Long term</h4>
+            ${formatList(policy.resolution.longTerm)}
+          </div>
+        </div>
+      </section>
+
       <section class="detail-section">
         <div class="section-heading">
           <i data-lucide="rotate-ccw"></i>

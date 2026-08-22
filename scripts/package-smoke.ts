@@ -61,7 +61,7 @@ const validation = await execFileAsync(
     cwd: consumerDirectory,
   },
 );
-if (!validation.stdout.includes("Validated 10 policies.")) {
+if (!validation.stdout.includes("Validated 16 policies.")) {
   throw new Error("Installed CLI could not validate its bundled catalog");
 }
 

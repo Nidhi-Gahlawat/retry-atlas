@@ -6,6 +6,8 @@ A Retry Atlas policy documents a decision, not a universal retry configuration. 
 
 - Cite an RFC, protocol specification, official service documentation, or established engineering reference over an unsourced blog post.
 - Explain why the failure is transient, permanent, state-dependent, or an ambiguous outcome.
+- In `diagnosis`, define what the signal means, list plausible causes as hypotheses, and provide checks that distinguish them.
+- In `resolution`, identify the owner and separate immediate mitigation from the long-term correction.
 - State what changes before another attempt. Waiting is a change only when there is a reason to expect recovery or server-directed timing.
 - Identify whether the first operation may have succeeded despite the observed failure.
 - Address idempotency, duplicate side effects, retry amplification, and circuit breaking.
@@ -31,11 +33,13 @@ A Retry Atlas policy documents a decision, not a universal retry configuration. 
 
 ## Review checklist
 
-1. Does the policy say whether the identical request can succeed?
-2. If state must change, is that prerequisite explicit and actionable?
-3. Could the first operation have succeeded, and is reconciliation described?
-4. Is retry traffic bounded by attempts and a caller deadline?
-5. Does the entry address overload and synchronized retries?
-6. Are status codes and error codes narrow enough to avoid conflating causes?
-7. Are all references authoritative HTTPS URLs?
-8. Do `pnpm catalog:validate`, `pnpm schema:check`, and `pnpm test` pass?
+1. Does the diagnosis distinguish plausible causes with concrete checks?
+2. Does the resolution name an owner and separate immediate from long-term action?
+3. Does the policy say whether the identical request can succeed?
+4. If state must change, is that prerequisite explicit and actionable?
+5. Could the first operation have succeeded, and is reconciliation described?
+6. Is retry traffic bounded by attempts and a caller deadline?
+7. Does the entry address overload and synchronized retries?
+8. Are status codes and error codes narrow enough to avoid conflating causes?
+9. Are all references authoritative HTTPS URLs?
+10. Do `pnpm catalog:validate`, `pnpm schema:check`, and `pnpm test` pass?

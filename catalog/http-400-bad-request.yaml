@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.1.0
+id: http-400-bad-request
+title: HTTP 400 bad request
+summary: Correct the request before sending a new attempt; waiting does not repair a client error.
+domain: http
+classification: permanent
+signals:
+  httpStatuses: [400]
+  errorCodes: [bad_request]
+diagnosis:
+  meaning: The server cannot or will not process the request because it perceives a client error.
+  commonCauses:
+    - The request syntax, framing, headers, or target is malformed.
+    - Client serialization does not match the endpoint contract.
+    - An intermediary rejected routing or request metadata before the application handled it.
+  checks:
+    - Inspect the response body and request ID for the server's specific rejection reason.
+    - Compare the emitted method, target, headers, and body with the endpoint contract.
+    - Reproduce with sanitized wire-level request metadata to identify proxy or framing changes.
+resolution:
+  owner: caller
+  immediate:
+    - Stop automatic retries and surface the rejection with a sanitized request identifier.
+    - Correct the malformed field, framing, or route before sending a new request.
+  longTerm:
+    - Validate and serialize requests from a shared typed contract.
+    - Add contract tests at proxy and origin boundaries that can independently return 400.
+decision:
+  retry: "no"
+  retrySameRequest: false
+  rationale: The same invalid request will remain invalid without a client or configuration change.
+  prerequisites:
+    - Correct the request or routing metadata before making a new attempt.
+safety:
+  idempotency: not_required
+  duplicateSideEffectRisk: none
+  retryAmplificationRisk: high
+  circuitBreaker: not_needed
+  guidance:
+    - Do not hide deterministic request defects behind a retry policy.
+    - Log only sanitized request metadata and never credentials or sensitive content.
+telemetry:
+  [request_id, rejection_code, request_contract_version, request_outcome]
+tags: [http, bad-request, client-error, validation]
+aliases: [bad request, malformed request, http 400]
+references:
+  - title: RFC 9110, Section 15.5.1 - 400 Bad Request
+    url: https://www.rfc-editor.org/rfc/rfc9110#section-15.5.1

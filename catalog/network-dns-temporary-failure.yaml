@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../schemas/retry-policy.schema.json
-schemaVersion: 1.0.0
+schemaVersion: 1.1.0
 id: network-dns-temporary-failure
 title: Temporary DNS resolution failure
 summary: Retry a temporary resolver failure with bounded backoff and jitter.
@@ -7,6 +7,24 @@ domain: network
 classification: transient
 signals:
   errorCodes: [EAI_AGAIN, SERVFAIL]
+diagnosis:
+  meaning: DNS could not produce an answer because the resolution process failed temporarily.
+  commonCauses:
+    - The configured resolver is unavailable or overloaded.
+    - An authoritative server failed or timed out.
+    - A DNSSEC or upstream dependency failure prevented a valid answer.
+  checks:
+    - Capture the DNS response code and resolver used for the failed lookup.
+    - Compare results through another approved resolver or from another network location.
+    - Distinguish SERVFAIL or EAI_AGAIN from a cacheable NXDOMAIN response.
+resolution:
+  owner: operations
+  immediate:
+    - Retry resolution with bounded jitter while preserving normal DNS caching.
+    - Use another configured resolver only when the environment supports failover.
+  longTerm:
+    - Restore resolver and authoritative-server availability.
+    - Monitor resolution latency, response codes, and cache effectiveness.
 decision:
   retry: conditional
   retrySameRequest: true

@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.1.0
+id: http-504-gateway-timeout
+title: HTTP 504 gateway timeout
+summary: Retry safe operations only within the remaining deadline after an upstream response timeout.
+domain: http
+classification: transient
+signals:
+  httpStatuses: [504]
+  errorCodes: [gateway_timeout]
+diagnosis:
+  meaning: A gateway or proxy did not receive a timely response from an upstream server needed to complete the request.
+  commonCauses:
+    - The upstream is slow, saturated, blocked, or waiting on another dependency.
+    - Gateway timeout limits are shorter than the upstream's expected processing time.
+    - The request completed upstream after the gateway abandoned the response.
+  checks:
+    - Compare gateway timeout settings with upstream latency and the caller deadline.
+    - Trace the request through upstream dependencies to find where the latency budget was spent.
+    - For mutations, query authoritative state to determine whether processing completed after timeout.
+resolution:
+  owner: shared
+  immediate:
+    - Retry only safe or idempotency-protected operations inside the remaining caller deadline.
+    - Reduce concurrency or shed optional work when upstream saturation is evident.
+  longTerm:
+    - Establish an end-to-end timeout budget with decreasing deadlines at each downstream hop.
+    - Make long-running mutations asynchronous or queryable and idempotent.
+decision:
+  retry: conditional
+  retrySameRequest: true
+  rationale: The upstream may recover, but timeout leaves a mutation's completion state uncertain.
+  prerequisites:
+    - Reserve enough caller deadline for another attempt and protect against duplicate effects.
+strategy:
+  mechanism: exponential_backoff
+  maxRetries: 1
+  requiresCallerDeadline: true
+  jitter: full
+  baseDelayMs: 200
+  maxDelayMs: 1000
+safety:
+  idempotency: required
+  duplicateSideEffectRisk: unknown
+  retryAmplificationRisk: high
+  circuitBreaker: recommended
+  guidance:
+    - Never let per-attempt timeouts consume the entire caller deadline.
+    - Verify mutation outcome before replay because upstream processing may continue.
+telemetry: [request_id, upstream, timeout_ms, retry_attempt, operation_outcome]
+tags: [http, gateway, timeout, upstream, deadline]
+aliases: [gateway timeout, upstream timeout, http 504]
+references:
+  - title: RFC 9110, Section 15.6.5 - 504 Gateway Timeout
+    url: https://www.rfc-editor.org/rfc/rfc9110#section-15.6.5

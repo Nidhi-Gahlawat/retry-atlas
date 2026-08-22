@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../schemas/retry-policy.schema.json
-schemaVersion: 1.0.0
+schemaVersion: 1.1.0
 id: network-read-timeout
 title: Network read timeout
 summary: Treat a response timeout as an ambiguous outcome until operation safety is known.
@@ -7,6 +7,24 @@ domain: network
 classification: ambiguous_outcome
 signals:
   errorCodes: [ETIMEDOUT, read_timeout]
+diagnosis:
+  meaning: The connection was established, but the expected response did not arrive before the read timeout.
+  commonCauses:
+    - The server or one of its dependencies is responding slowly.
+    - The response was delayed or lost after the server completed the operation.
+    - The client timeout is shorter than the operation's expected latency.
+  checks:
+    - Confirm the timeout occurred while awaiting response bytes, not while connecting.
+    - Correlate the operation ID with server logs to determine whether work completed.
+    - Compare the configured timeout with observed latency percentiles and the caller deadline.
+resolution:
+  owner: shared
+  immediate:
+    - Reconcile the operation outcome before replaying a mutation.
+    - Retry only replay-safe operations within the remaining deadline.
+  longTerm:
+    - Reduce server latency or redesign long operations around asynchronous status checks.
+    - Propagate deadlines and idempotency keys across service boundaries.
 decision:
   retry: conditional
   retrySameRequest: false

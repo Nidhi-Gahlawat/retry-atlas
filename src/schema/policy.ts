@@ -20,9 +20,21 @@ const retryStrategySchema = z.object({
   maxDelayMs: z.number().int().positive().optional(),
 });
 
+const diagnosisSchema = z.object({
+  meaning: z.string().min(1),
+  commonCauses: z.array(z.string().min(1)).min(1).max(5),
+  checks: z.array(z.string().min(1)).min(1).max(5),
+});
+
+const resolutionSchema = z.object({
+  owner: z.enum(["caller", "service_owner", "operations", "shared"]),
+  immediate: z.array(z.string().min(1)).min(1).max(5),
+  longTerm: z.array(z.string().min(1)).min(1).max(5),
+});
+
 export const policySchema = z
   .object({
-    schemaVersion: z.literal("1.0.0"),
+    schemaVersion: z.literal("1.1.0"),
     id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     title: z.string().min(1),
     summary: z.string().min(1),
@@ -37,6 +49,8 @@ export const policySchema = z
       httpStatuses: z.array(z.number().int().min(100).max(599)).optional(),
       errorCodes: z.array(z.string().min(1)).optional(),
     }),
+    diagnosis: diagnosisSchema,
+    resolution: resolutionSchema,
     decision: z.object({
       retry: z.enum(["yes", "no", "conditional"]),
       retrySameRequest: z.boolean(),

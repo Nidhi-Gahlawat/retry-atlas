@@ -35,6 +35,18 @@ export function formatSearchResults(
 }
 
 export function formatPolicy(policy: Policy): string {
+  const commonCauses = policy.diagnosis.commonCauses
+    .map((item) => `  - ${item}`)
+    .join("\n");
+  const checks = policy.diagnosis.checks
+    .map((item) => `  - ${item}`)
+    .join("\n");
+  const immediateResolution = policy.resolution.immediate
+    .map((item) => `  - ${item}`)
+    .join("\n");
+  const longTermResolution = policy.resolution.longTerm
+    .map((item) => `  - ${item}`)
+    .join("\n");
   const prerequisites = policy.decision.prerequisites
     .map((item) => `  - ${item}`)
     .join("\n");
@@ -54,6 +66,22 @@ export function formatPolicy(policy: Policy): string {
     "",
     policy.summary,
     policy.decision.rationale,
+    "",
+    "Common meaning",
+    policy.diagnosis.meaning,
+    "",
+    "Common causes",
+    commonCauses,
+    "",
+    "Checks",
+    checks,
+    "",
+    `Resolution owner: ${policy.resolution.owner}`,
+    "Immediate resolution",
+    immediateResolution,
+    "",
+    "Long-term resolution",
+    longTermResolution,
     "",
     "What must change",
     prerequisites || "  - Nothing; observe the bounded strategy.",

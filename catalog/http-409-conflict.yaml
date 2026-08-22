@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=../schemas/retry-policy.schema.json
+schemaVersion: 1.1.0
+id: http-409-conflict
+title: HTTP 409 conflict
+summary: Reconcile the request with current resource state before resubmitting it.
+domain: http
+classification: permanent
+signals:
+  httpStatuses: [409]
+  errorCodes: [conflict]
+diagnosis:
+  meaning: The request conflicts with the current state of the target resource.
+  commonCauses:
+    - A concurrent writer changed the resource after the caller read it.
+    - A uniqueness or lifecycle rule conflicts with the requested transition.
+    - The caller submitted a stale revision or attempted to create an existing resource.
+  checks:
+    - Inspect the response content for the conflicting field, revision, or resource identifier.
+    - Read the current resource state and compare its version with the caller's base version.
+    - Determine whether the operation already reached the intended state before resubmitting it.
+resolution:
+  owner: shared
+  immediate:
+    - Stop blind retries and fetch the current resource state.
+    - Merge, choose a new identifier, or treat an already-achieved state as success when valid.
+  longTerm:
+    - Use explicit version preconditions and a documented conflict-resolution workflow.
+    - Design create operations with stable idempotency keys or client-selected identifiers.
+decision:
+  retry: "no"
+  retrySameRequest: false
+  rationale: Resubmission is appropriate only after the caller resolves the state conflict.
+  prerequisites:
+    - Reconcile with current state and construct a new request with valid preconditions.
+safety:
+  idempotency: operation_dependent
+  duplicateSideEffectRisk: unknown
+  retryAmplificationRisk: high
+  circuitBreaker: not_needed
+  guidance:
+    - Do not convert conflict handling into a timed retry loop.
+    - Verify outcome before replaying a create or other mutation.
+telemetry:
+  [request_id, resource_version, conflict_type, logical_request_outcome]
+tags: [http, conflict, concurrency, state, idempotency]
+aliases: [resource conflict, version conflict, duplicate resource, http 409]
+references:
+  - title: RFC 9110, Section 15.5.10 - 409 Conflict
+    url: https://www.rfc-editor.org/rfc/rfc9110#section-15.5.10

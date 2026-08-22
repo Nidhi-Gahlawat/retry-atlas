@@ -53,10 +53,10 @@ describe("retry-atlas CLI", () => {
   });
 
   it("explains when a human search has no matches", async () => {
-    const { stdout, stderr } = await runCli("search", "gateway failure");
+    const { stdout, stderr } = await runCli("search", "smtp mailbox quota");
 
     expect(stderr).toBe("");
-    expect(stdout).toContain('No policies matched "gateway failure".');
+    expect(stdout).toContain('No policies matched "smtp mailbox quota".');
     expect(stdout).toContain("retry-atlas list");
   });
 });

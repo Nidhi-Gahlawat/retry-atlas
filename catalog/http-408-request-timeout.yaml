@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../schemas/retry-policy.schema.json
-schemaVersion: 1.0.0
+schemaVersion: 1.1.0
 id: http-408-request-timeout
 title: HTTP 408 request timeout
 summary: Retry a timed-out request only when replaying the operation is safe.
@@ -8,6 +8,24 @@ classification: ambiguous_outcome
 signals:
   httpStatuses: [408]
   errorCodes: [request_timeout]
+diagnosis:
+  meaning: The server stopped waiting for the client to finish sending the request.
+  commonCauses:
+    - The client uploaded the request body too slowly.
+    - A slow or interrupted network path delayed request transmission.
+    - The server or intermediary enforced a request-receive timeout.
+  checks:
+    - Confirm that the response is an HTTP 408 rather than a client-side read timeout.
+    - Measure request upload duration and bytes sent before the timeout.
+    - Determine whether the server processed any part of the operation.
+resolution:
+  owner: shared
+  immediate:
+    - Reconnect and retry only when the operation is replay-safe or reconciled.
+    - Reduce or resume the request payload when the protocol supports it.
+  longTerm:
+    - Align client upload behavior and server request timeouts with expected payload sizes.
+    - Use idempotency keys or stable operation IDs for mutations.
 decision:
   retry: conditional
   retrySameRequest: false
